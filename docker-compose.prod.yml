@@ -1,0 +1,19 @@
+name: bakery
+services:
+  bakery:
+    image: bakery:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env or the environment}
+      HTTP_ADDR: 0.0.0.0:8080
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:8080"
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s

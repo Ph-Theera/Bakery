@@ -1,0 +1,21 @@
+name: bakery-supabase
+services:
+  bakery:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: dev
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env or the environment}
+      HTTP_ADDR: 0.0.0.0:8080
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:8080"
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    init: true
+    stop_grace_period: 15s
+volumes:
+  go-mod-cache:
+  go-build-cache:

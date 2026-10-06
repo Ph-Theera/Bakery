@@ -1,0 +1,41 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: none
+  enable:
+    - errcheck
+    - errorlint
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - depguard
+  settings:
+    depguard:
+      rules:
+        inner-layers:
+          files:
+            - "**/internal/domains/**/*.go"
+            - "**/internal/ports/**/*.go"
+            - "**/internal/usecases/**/*.go"
+            - "**/internal/services/**/*.go"
+          deny:
+            - pkg: bakery/internal/adapters
+              desc: Inner layers must depend on ports, not adapters.
+            - pkg: bakery/infrastructure
+              desc: Inject configuration through constructors or ports.
+        domains:
+          files:
+            - "**/internal/domains/**/*.go"
+          deny:
+            - pkg: bakery/internal/ports
+              desc: Domains must not depend on application ports.
+            - pkg: bakery/internal/usecases
+              desc: Domains must not depend on usecases.
+            - pkg: bakery/internal/services
+              desc: Domains must not depend on application services.
+formatters:
+  enable:
+    - gofmt
+    - goimports

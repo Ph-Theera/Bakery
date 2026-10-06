@@ -1,0 +1,11 @@
+.git
+.agents
+.codex
+.aws
+.env
+.env.*
+*.pem
+*.key
+tmp
+coverage
+bin

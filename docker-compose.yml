@@ -1,0 +1,57 @@
+name: bakery
+services:
+  bakery:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: dev
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/bakery?sslmode=disable
+      HTTP_ADDR: 0.0.0.0:8080
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:8080"
+    restart: unless-stopped
+    volumes:
+      - .:/app:rw,delegated
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    init: true
+    stop_grace_period: 15s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      dbmate:
+        condition: service_completed_successfully
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: bakery
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    restart: unless-stopped
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  dbmate:
+    image: ghcr.io/amacneil/dbmate:2.16.0
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    environment:
+      DATABASE_URL: postgres://user:password@postgres:5432/bakery?sslmode=disable
+      DBMATE_SCHEMA_FILE: /data/schema.sql
+      DBMATE_MIGRATIONS_DIR: /data/migrations
+    volumes:
+      - ./db:/data
+    command: ["up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  postgres-data:
+  go-mod-cache:
+  go-build-cache:

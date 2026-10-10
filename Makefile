@@ -5,15 +5,29 @@ export GOTOOLCHAIN ?= go1.26.8
 GOLANGCI_LINT ?= golangci-lint
 GOLANGCI_VERSION := v2.13.2
 AIR_VERSION := v1.64.5
-GOARCH ?= $(shell $(GO) env GOARCH)
 COMPOSE ?= docker compose
+
+# GNU make on Windows uses cmd.exe by default, but this Makefile contains
+# POSIX recipes. Use Git Bash when available and avoid id(1), which is not
+# available in cmd.exe. Docker only needs a stable non-root uid/gid for the
+# mounted migration directory on Windows.
+ifeq ($(OS),Windows_NT)
+SHELL := C:/Program Files/Git/bin/bash.exe
+BASH := C:/Program Files/Git/bin/bash.exe
+GOARCH ?= amd64
+export LOCAL_UID ?= 1000
+export LOCAL_GID ?= 1000
+DBMATE = "$(BASH)" scripts/with-env.sh "$(BASH)" scripts/dbmate.sh
+else
+GOARCH ?= $(shell $(GO) env GOARCH)
 export LOCAL_UID ?= $(shell id -u)
 export LOCAL_GID ?= $(shell id -g)
+DBMATE = sh scripts/with-env.sh sh scripts/dbmate.sh
+endif
 PROD_COMPOSE = $(COMPOSE) -f docker-compose.prod.yml
 export DBMATE_TARGET ?= local
 export DBMATE_VERSION ?= 2.16.0
 export DBMATE_NETWORK ?= --network=host
-DBMATE = sh scripts/with-env.sh sh scripts/dbmate.sh
 
 .PHONY: help run dev build tidy fmt fmt-check vet lint lint-fix check test tests test-integration tools-install docker-build compose-local compose-up compose-down compose-logs compose-prod compose-prod-down compose-supabase compose-supabase-down dbmate migrate clean
 
@@ -91,12 +105,21 @@ compose-supabase: ## Start development API connected to Supabase via .env
 compose-supabase-down: ## Stop Supabase development API
 	$(COMPOSE) -f docker-compose.supabase.yml down
 
+ifeq ($(OS),Windows_NT)
 dbmate: ## Run dbmate in Docker, e.g. make dbmate ARGS="up"
 	@if [ -z "$(ARGS)" ]; then \
 		echo 'Missing argument: make dbmate ARGS="up" or ARGS="new <migration_name>"'; \
 		exit 1; \
 	fi
 	@$(DBMATE) $(ARGS)
+else
+dbmate: ## Run dbmate in Docker, e.g. make dbmate ARGS="up"
+	@if [ -z "$(ARGS)" ]; then \
+		echo 'Missing argument: make dbmate ARGS="up" or ARGS="new <migration_name>"'; \
+		exit 1; \
+	fi
+	@$(DBMATE) $(ARGS)
+endif
 
 migrate: ## Alias for make dbmate ARGS="up"
 	@$(MAKE) --no-print-directory dbmate ARGS="up"

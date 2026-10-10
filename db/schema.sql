@@ -21,12 +21,41 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: categories; Type: TABLE; Schema: app_schema; Owner: -
+--
+
+CREATE TABLE app_schema.categories (
+    id uuid NOT NULL,
+    slug character varying,
+    name_th character varying,
+    sort_order integer,
+    is_active boolean
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.schema_migrations (
     version character varying(128) NOT NULL
 );
+
+
+--
+-- Name: categories categories_pkey; Type: CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.categories
+    ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: categories categories_slug_key; Type: CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.categories
+    ADD CONSTRAINT categories_slug_key UNIQUE (slug);
 
 
 --
@@ -47,4 +76,5 @@ ALTER TABLE ONLY public.schema_migrations
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20261010023550');
+    ('20261010023550'),
+    ('20261010024134');

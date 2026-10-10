@@ -2,7 +2,7 @@ package rest
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_in"
+	portin "bakery/internal/ports/port_in/products"
 	"context"
 	"encoding/json"
 	"errors"
@@ -63,7 +63,7 @@ func id(r *http.Request) (int64, error) {
 	}
 	return n, nil
 }
-func New(c port_in.CreateProductUsecase, g port_in.GetProductUsecase, l port_in.ListProductsUsecase, u port_in.UpdateProductUsecase, d port_in.DeleteProductUsecase) http.Handler {
+func New(c portin.CreateProductUsecase, g portin.GetProductUsecase, l portin.ListProductsUsecase, u portin.UpdateProductUsecase, d portin.DeleteProductUsecase) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /products", func(w http.ResponseWriter, r *http.Request) {
 		in, e := decode(w, r)
@@ -103,7 +103,7 @@ func New(c port_in.CreateProductUsecase, g port_in.GetProductUsecase, l port_in.
 			fail(w, e)
 			return
 		}
-		p, e := u.Handle(r.Context(), port_in.UpdateProductCommand{ID: n, Input: in})
+		p, e := u.Handle(r.Context(), portin.UpdateProductCommand{ID: n, Input: in})
 		if e != nil {
 			fail(w, e)
 			return
@@ -123,7 +123,7 @@ func New(c port_in.CreateProductUsecase, g port_in.GetProductUsecase, l port_in.
 		w.WriteHeader(204)
 	})
 	mux.HandleFunc("GET /products", func(w http.ResponseWriter, r *http.Request) {
-		q := port_in.ListProductsQuery{Limit: 20}
+		q := portin.ListProductsQuery{Limit: 20}
 		var e error
 		if v, ok := r.URL.Query()["limit"]; ok {
 			q.Limit, e = strconv.Atoi(v[0])

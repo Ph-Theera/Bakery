@@ -17,6 +17,7 @@ type Data struct {
 	PriceSatang int64
 	Stock       int64
 }
+
 type Input struct {
 	SKU         string
 	Name        string

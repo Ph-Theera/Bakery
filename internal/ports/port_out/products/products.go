@@ -1,4 +1,4 @@
-package port_out
+package products
 
 import (
 	"bakery/internal/domains/product"

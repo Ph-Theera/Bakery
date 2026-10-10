@@ -136,6 +136,21 @@ CREATE TABLE app_schema.inventory_reservations (
 
 
 --
+-- Name: notification_outbox; Type: TABLE; Schema: app_schema; Owner: -
+--
+
+CREATE TABLE app_schema.notification_outbox (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    order_id uuid NOT NULL,
+    payload text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    next_attempt_at timestamp with time zone DEFAULT now() NOT NULL,
+    sent_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: order_items; Type: TABLE; Schema: app_schema; Owner: -
 --
 
@@ -207,6 +222,7 @@ CREATE TABLE app_schema.orders (
     updated_by uuid,
     deleted_at timestamp with time zone,
     deleted_by uuid,
+    request_hash character varying(64),
     CONSTRAINT orders_check CHECK ((total_satang = ((subtotal_satang + delivery_fee_satang) - discount_satang))),
     CONSTRAINT orders_check1 CHECK (((((fulfillment_type)::text = 'delivery'::text) AND (delivery_address_snapshot IS NOT NULL) AND (pickup_at IS NULL)) OR (((fulfillment_type)::text = 'pickup'::text) AND (pickup_at IS NOT NULL) AND (delivery_address_snapshot IS NULL)))),
     CONSTRAINT orders_check2 CHECK (((deleted_at IS NULL) = (deleted_by IS NULL))),
@@ -238,6 +254,7 @@ CREATE TABLE app_schema.payment_evidence (
     updated_by uuid,
     deleted_at timestamp with time zone,
     deleted_by uuid,
+    content bytea,
     CONSTRAINT payment_evidence_check CHECK (((deleted_at IS NULL) = (deleted_by IS NULL))),
     CONSTRAINT payment_evidence_file_size_bytes_check CHECK ((file_size_bytes > 0)),
     CONSTRAINT payment_evidence_mime_type_check CHECK (((mime_type)::text = ANY ((ARRAY['image/jpeg'::character varying, 'image/png'::character varying, 'image/webp'::character varying])::text[])))
@@ -322,6 +339,17 @@ CREATE TABLE app_schema.products (
     CONSTRAINT products_price_check CHECK ((price_satang >= 0)),
     CONSTRAINT products_soft_delete_check CHECK (((deleted_at IS NULL) = (deleted_by IS NULL))),
     CONSTRAINT products_stock_check CHECK ((stock_quantity >= 0))
+);
+
+
+--
+-- Name: store_settings; Type: TABLE; Schema: app_schema; Owner: -
+--
+
+CREATE TABLE app_schema.store_settings (
+    key character varying(80) NOT NULL,
+    value jsonb NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -430,6 +458,22 @@ ALTER TABLE ONLY app_schema.inventory_reservations
 
 
 --
+-- Name: notification_outbox notification_outbox_order_id_key; Type: CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.notification_outbox
+    ADD CONSTRAINT notification_outbox_order_id_key UNIQUE (order_id);
+
+
+--
+-- Name: notification_outbox notification_outbox_pkey; Type: CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.notification_outbox
+    ADD CONSTRAINT notification_outbox_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: order_items order_items_pkey; Type: CONSTRAINT; Schema: app_schema; Owner: -
 --
 
@@ -515,6 +559,14 @@ ALTER TABLE ONLY app_schema.products
 
 ALTER TABLE ONLY app_schema.products
     ADD CONSTRAINT products_slug_key UNIQUE (slug);
+
+
+--
+-- Name: store_settings store_settings_pkey; Type: CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.store_settings
+    ADD CONSTRAINT store_settings_pkey PRIMARY KEY (key);
 
 
 --
@@ -844,6 +896,14 @@ ALTER TABLE ONLY app_schema.inventory_reservations
 
 
 --
+-- Name: notification_outbox notification_outbox_order_id_fkey; Type: FK CONSTRAINT; Schema: app_schema; Owner: -
+--
+
+ALTER TABLE ONLY app_schema.notification_outbox
+    ADD CONSTRAINT notification_outbox_order_id_fkey FOREIGN KEY (order_id) REFERENCES app_schema.orders(id);
+
+
+--
 -- Name: order_items order_items_created_by_fkey; Type: FK CONSTRAINT; Schema: app_schema; Owner: -
 --
 
@@ -1104,4 +1164,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261010023550'),
     ('20261010024134'),
     ('20261010024942'),
-    ('20261010030000');
+    ('20261010030000'),
+    ('20261010120000');

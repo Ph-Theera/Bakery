@@ -72,7 +72,7 @@ test: ## Run tests without connecting to an external database
 tests: test ## Alias matching shipment-service
 
 test-integration: ## Run DB tests using TEST_DATABASE_URL (test database only)
-	@sh scripts/with-env.sh sh -eu -c ': "$${TEST_DATABASE_URL:?Set TEST_DATABASE_URL to a migrated test database}"; exec $(GO) test ./internal/adapters/outbound/db/product -count=1 -v'
+	@sh scripts/with-env.sh sh -eu -c ': "$${TEST_DATABASE_URL:?Set TEST_DATABASE_URL to a fresh disposable database ending in _test}"; exec $(GO) test ./internal/adapters/inbound/api -run TestCheckoutPostgres -count=1 -v'
 
 tools-install: ## Install pinned lint and hot reload tools in GOPATH/bin
 	$(GO) install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_VERSION)

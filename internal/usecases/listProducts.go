@@ -2,17 +2,17 @@ package usecases
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_in"
-	"bakery/internal/ports/port_out"
+	portin "bakery/internal/ports/port_in/products"
+	portout "bakery/internal/ports/port_out/products"
 	"context"
 )
 
-type listProducts struct{ repo port_out.ProductRepository }
+type listProducts struct{ repo portout.ProductRepository }
 
-func NewListProducts(repo port_out.ProductRepository) port_in.ListProductsUsecase {
+func NewListProducts(repo portout.ProductRepository) portin.ListProductsUsecase {
 	return &listProducts{repo}
 }
-func (u *listProducts) Handle(ctx context.Context, cmd port_in.ListProductsQuery) ([]product.Data, error) {
+func (u *listProducts) Handle(ctx context.Context, cmd portin.ListProductsQuery) ([]product.Data, error) {
 	if cmd.Limit < 1 || cmd.Limit > 100 || cmd.Offset < 0 {
 		return nil, product.ErrInvalid
 	}

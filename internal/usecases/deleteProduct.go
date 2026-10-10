@@ -2,14 +2,14 @@ package usecases
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_in"
-	"bakery/internal/ports/port_out"
+	portin "bakery/internal/ports/port_in/products"
+	portout "bakery/internal/ports/port_out/products"
 	"context"
 )
 
-type deleteProduct struct{ repo port_out.ProductRepository }
+type deleteProduct struct{ repo portout.ProductRepository }
 
-func NewDeleteProduct(repo port_out.ProductRepository) port_in.DeleteProductUsecase {
+func NewDeleteProduct(repo portout.ProductRepository) portin.DeleteProductUsecase {
 	return &deleteProduct{repo}
 }
 func (u *deleteProduct) Handle(ctx context.Context, cmd int64) error {

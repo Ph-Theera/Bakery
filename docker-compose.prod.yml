@@ -8,6 +8,15 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env or the environment}
       HTTP_ADDR: 0.0.0.0:8080
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:-}
+      ADMIN_USER_ID: ${ADMIN_USER_ID:-}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+      PRODUCT_IMAGE_BASE_URL: ${PRODUCT_IMAGE_BASE_URL:-}
+      LINE_LOGIN_CHANNEL_ID: ${LINE_LOGIN_CHANNEL_ID:-}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN:-}
+      LINE_ADMIN_USER_ID: ${LINE_ADMIN_USER_ID:-}
     ports:
       - "127.0.0.1:${HTTP_PORT:-8080}:8080"
     restart: unless-stopped

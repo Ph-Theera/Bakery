@@ -2,14 +2,14 @@ package usecases
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_in"
-	"bakery/internal/ports/port_out"
+	portin "bakery/internal/ports/port_in/products"
+	portout "bakery/internal/ports/port_out/products"
 	"context"
 )
 
-type getProduct struct{ repo port_out.ProductRepository }
+type getProduct struct{ repo portout.ProductRepository }
 
-func NewGetProduct(repo port_out.ProductRepository) port_in.GetProductUsecase {
+func NewGetProduct(repo portout.ProductRepository) portin.GetProductUsecase {
 	return &getProduct{repo}
 }
 func (u *getProduct) Handle(ctx context.Context, cmd int64) (product.Data, error) {

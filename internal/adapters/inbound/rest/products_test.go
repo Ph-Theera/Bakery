@@ -2,8 +2,8 @@ package rest
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_out"
-	"bakery/internal/usecases"
+	portout "bakery/internal/ports/port_out/products"
+	productusecases "bakery/internal/usecases"
 	"context"
 	"errors"
 	"net/http/httptest"
@@ -12,7 +12,7 @@ import (
 )
 
 type stub struct {
-	port_out.ProductRepository
+	portout.ProductRepository
 	err error
 }
 
@@ -41,7 +41,7 @@ func TestHTTP(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := stub{err: tc.err}
-			h := New(usecases.NewCreateProduct(r), usecases.NewGetProduct(r), usecases.NewListProducts(r), usecases.NewUpdateProduct(r), usecases.NewDeleteProduct(r))
+			h := New(productusecases.NewCreateProduct(r), productusecases.NewGetProduct(r), productusecases.NewListProducts(r), productusecases.NewUpdateProduct(r), productusecases.NewDeleteProduct(r))
 			w := httptest.NewRecorder()
 			h.ServeHTTP(w, httptest.NewRequest(tc.method, tc.path, strings.NewReader(tc.body)))
 			if w.Code != tc.status {

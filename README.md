@@ -1,6 +1,6 @@
 # Bakery
 
-Go Product API ตาม Clean Architecture: domain → ports → usecases; REST และ PostgreSQL อยู่ใน adapters และประกอบ dependencies ที่ `cmd/bakery/wire`.
+TongBai API: catalog, checkout, orders, payments, admin และ LINE integration. แยกโมดูล product/users/orders/store โดย shared เป็น dependency ล่างสุด และ composite ประสาน usecases. ดู [API.md](API.md) สำหรับเส้น API และ [ARCHITECTURE.md](ARCHITECTURE.md) สำหรับโครงสร้าง.
 
 ## เริ่มใช้งานกับ Supabase
 
@@ -13,27 +13,13 @@ Go Product API ตาม Clean Architecture: domain → ports → usecases; REST
 
 `make run`, `make dev`, `make migrate` และ `make test-integration` โหลด `.env` อัตโนมัติผ่าน shell; ใส่ค่าที่มีอักขระพิเศษใน single quotes เช่น `DATABASE_URL='postgresql://...'`. โปรแกรม Go เองยังรับค่าผ่าน environment. ต้อง percent-encode รหัสผ่านใน URI ก่อนเสมอ
 
-ค่าเริ่มต้นฟังที่ `127.0.0.1:8080` ตั้ง `HTTP_ADDR` เพื่อเปลี่ยน address. ยังไม่มีระบบ authentication ของ HTTP API; หากเปิดให้เข้าจากภายนอกต้องเพิ่มการควบคุมสิทธิ์ก่อน. Database adapter ใช้ `pgxpool` ไม่ใช้ Supabase REST API หรือ anon key. การเชื่อมต่อเป็น database role ไม่ได้ใช้ JWT ของผู้ใช้. Migration เปิด RLS โดยไม่มี public policies; role ที่ backend ใช้ต้องมีสิทธิ์อ่าน/เขียนตามที่ต้องการ (URI ของ role postgres ใน Connect ใช้กับการตั้งต้นได้).
+ค่าเริ่มต้นฟังที่ `127.0.0.1:8080` ตั้ง `HTTP_ADDR` เพื่อเปลี่ยน address. ตั้ง `AUTH_SECRET` อย่างน้อย 32 ตัวอักษรสำหรับ signed order/user token และ `ADMIN_API_TOKEN`/`ADMIN_USER_ID` สำหรับ admin ตาม API.md. ห้ามส่ง admin token ลง public frontend bundle. Database adapter ใช้ `pgxpool` เชื่อม PostgreSQL โดยตรง ไม่ใช้ Supabase anon key; database role ต้องมีสิทธิ์อ่าน/เขียน `app_schema`.
 
 ## API
 
-| Method | Path | ผลลัพธ์ |
-|---|---|---|
-| POST | `/products` | สร้างสินค้า, 201 + Location |
-| GET | `/products?limit=20&offset=0` | รายการสินค้าเรียง id, limit 1–100 |
-| GET | `/products/{id}` | รายละเอียดสินค้า |
-| PUT | `/products/{id}` | แทนที่ข้อมูลสินค้าทั้งชุด |
-| DELETE | `/products/{id}` | ลบถาวร, 204 |
+Base path: `/api/v1` (มี unversioned aliases). รายการ routes, request/response, auth และข้อจำกัดอยู่ใน [API.md](API.md).
 
-ตัวอย่างสร้างสินค้า:
-
-```bash
-curl -i http://127.0.0.1:8080/products \
-  -H 'Content-Type: application/json' \
-  -d '{"sku":"CROISSANT-001","name":"ครัวซองต์","price_satang":6500,"stock":20}'
-```
-
-POST/PUT ต้องส่งทั้งสี่ฟิลด์ ราคาเป็น integer หน่วยสตางค์ (6500 = 65 บาท), stock เป็น integer ไม่ติดลบ; SKU ไม่ซ้ำ, ยาวสูงสุด 64 ตัวอักษร และชื่อสูงสุด 200 ตัวอักษร. ID เป็น positive bigint สร้างโดย PostgreSQL. Error: 400 input ไม่ถูกต้อง, 404 ไม่พบสินค้า, 409 SKU ซ้ำ, 500 ข้อผิดพลาดภายในโดยไม่เปิดเผย DB error. ข้อมูลถูกเก็บถาวรในตาราง `public.products`.
+ข้อมูลสินค้าใช้ UUID ใน `app_schema.products` และ API รับราคาเป็นบาท (`price_thb`) โดยเก็บใน DB เป็นสตางค์. เส้นเขียนสินค้าอยู่ใน `/admin/products`; ไม่มี public POST/PUT แบบเดิม. Checkout ต้องส่ง `Idempotency-Key` และเก็บ bearer token ที่ได้รับไว้สำหรับติดตามออเดอร์/ส่งสลิป.
 
 ## Docker และ Makefile
 
@@ -73,7 +59,7 @@ make check             # lint + unit tests + build
 
 การตั้งค่า lint อยู่ใน `.golangci.yml` ใช้ configuration v2 ตาม [เอกสาร golangci-lint](https://golangci-lint.run/docs/configuration/file/) และเพิ่ม depguard เพื่อห้ามชั้น domain/ports/usecases import adapters หรือ infrastructure
 
-Integration test ของ DB ใช้ `TEST_DATABASE_URL` ของฐานข้อมูลทดสอบที่ migration แล้วและมีตาราง products ว่าง ไม่ใช้ production เพราะ test สร้างและลบข้อมูล:
+Integration test ใช้ `TEST_DATABASE_URL` ของฐานข้อมูลทดสอบใหม่ที่ชื่อจบด้วย `_test` และยังไม่มี schema. Test โหลด schema และ migration API เอง; ห้ามใช้ production หรือฐานข้อมูลที่มีข้อมูลอยู่แล้ว:
 
 ```bash
 make test-integration

@@ -2,7 +2,7 @@ package productdb
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_out"
+	portout "bakery/internal/ports/port_out/products"
 	"context"
 	"errors"
 
@@ -13,7 +13,7 @@ import (
 
 type Repository struct{ db *pgxpool.Pool }
 
-func New(db *pgxpool.Pool) port_out.ProductRepository { return &Repository{db} }
+func New(db *pgxpool.Pool) portout.ProductRepository { return &Repository{db} }
 
 const columns = "id,sku,name,price_satang,stock"
 

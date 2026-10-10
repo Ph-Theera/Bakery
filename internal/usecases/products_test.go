@@ -2,15 +2,15 @@ package usecases
 
 import (
 	"bakery/internal/domains/product"
-	"bakery/internal/ports/port_in"
-	"bakery/internal/ports/port_out"
+	portin "bakery/internal/ports/port_in/products"
+	portout "bakery/internal/ports/port_out/products"
 	"context"
 	"errors"
 	"testing"
 )
 
 type fakeRepo struct {
-	port_out.ProductRepository
+	portout.ProductRepository
 	calls int
 	err   error
 	input product.Input
@@ -55,14 +55,14 @@ func TestInvalidQueriesDoNotCallRepository(t *testing.T) {
 	if !errors.Is(e, product.ErrInvalid) {
 		t.Fatal(e)
 	}
-	_, e = NewUpdateProduct(r).Handle(ctx, port_in.UpdateProductCommand{ID: -1})
+	_, e = NewUpdateProduct(r).Handle(ctx, portin.UpdateProductCommand{ID: -1})
 	if !errors.Is(e, product.ErrInvalid) {
 		t.Fatal(e)
 	}
 	if e = NewDeleteProduct(r).Handle(ctx, 0); !errors.Is(e, product.ErrInvalid) {
 		t.Fatal(e)
 	}
-	for _, q := range []port_in.ListProductsQuery{{Limit: 0}, {Limit: 101}, {Limit: 20, Offset: -1}} {
+	for _, q := range []portin.ListProductsQuery{{Limit: 0}, {Limit: 101}, {Limit: 20, Offset: -1}} {
 		if _, e = NewListProducts(r).Handle(ctx, q); !errors.Is(e, product.ErrInvalid) {
 			t.Fatal(e)
 		}

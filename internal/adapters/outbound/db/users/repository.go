@@ -1,7 +1,10 @@
 package usersdb
 
 import (
-	"bakery/internal/usecases/users"
+	"bakery/internal/adapters/outbound/db/transaction"
+	"bakery/internal/domains/users"
+	portout "bakery/internal/ports/port_out/users"
+	"bakery/internal/shared"
 	"context"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,4 +33,10 @@ func (r Repository) Link(ctx context.Context, p users.Profile) (users.Profile, e
 	err := r.DB.QueryRow(ctx, "INSERT INTO app_schema.users(auth_provider,provider_subject) VALUES('line',$1) ON CONFLICT(auth_provider,provider_subject) DO UPDATE SET updated_at=now() WHERE app_schema.users.is_active AND app_schema.users.deleted_at IS NULL RETURNING id::text", p.ID).Scan(&id)
 	p.ID = id
 	return p, err
+}
+func NewUserRepository(db *pgxpool.Pool) portout.Repository { return &Repository{DB: db} }
+func (r Repository) UpsertCustomer(ctx context.Context, tx shared.Transaction, name, phone, user string) (string, error) {
+	var id string
+	e := transaction.Executor(r.DB, tx).QueryRow(ctx, "INSERT INTO app_schema.customers(display_name,phone,user_id) VALUES($1,$2,NULLIF($3,'')::uuid) ON CONFLICT(user_id) DO UPDATE SET display_name=EXCLUDED.display_name,phone=EXCLUDED.phone RETURNING id::text", name, phone, user).Scan(&id)
+	return id, e
 }

@@ -1,8 +1,8 @@
 package line
 
 import (
+	"bakery/internal/domains/users"
 	"bakery/internal/shared"
-	"bakery/internal/usecases/users"
 	"context"
 	"encoding/json"
 	"io"

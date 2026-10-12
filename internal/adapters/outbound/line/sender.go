@@ -1,7 +1,7 @@
 package line
 
 import (
-	"bakery/internal/usecases/composite"
+	"bakery/internal/domains/notifications"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -14,7 +14,7 @@ type Sender struct {
 	Token, Recipient string
 }
 
-func (s Sender) Send(ctx context.Context, m composite.Message) error {
+func (s Sender) Send(ctx context.Context, m notifications.Message) error {
 	raw, err := json.Marshal(map[string]any{"to": s.Recipient, "messages": []map[string]string{{"type": "text", "text": m.Text}}})
 	if err != nil {
 		return err

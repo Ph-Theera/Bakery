@@ -35,6 +35,39 @@ linters:
               desc: Domains must not depend on usecases.
             - pkg: bakery/internal/services
               desc: Domains must not depend on application services.
+        inbound:
+          files:
+            - "**/internal/adapters/inbound/**/*.go"
+            - "!$test"
+          deny:
+            - pkg: bakery/internal/ports/port_out
+              desc: REST must call input ports, not repositories.
+            - pkg: bakery/internal/usecases
+              desc: Compose concrete usecases in wire only.
+            - pkg: bakery/internal/adapters/outbound
+              desc: REST must not construct database or integration adapters.
+        outbound:
+          files:
+            - "**/internal/adapters/outbound/**/*.go"
+          deny:
+            - pkg: bakery/internal/usecases
+              desc: DB/integration adapters must depend on output ports and domains.
+            - pkg: bakery/internal/ports/port_in
+              desc: Persistence must not depend on transport-facing input ports.
+        shared:
+          files:
+            - "**/internal/shared/**/*.go"
+          deny:
+            - pkg: bakery/internal/domains
+              desc: Shared is the lowest dependency.
+            - pkg: bakery/internal/ports
+              desc: Shared must not depend on feature ports.
+            - pkg: bakery/internal/usecases
+              desc: Shared must not depend on workflows.
+            - pkg: bakery/internal/adapters
+              desc: Shared must not depend on drivers or transport.
+            - pkg: bakery/infrastructure
+              desc: Inject runtime configuration.
 formatters:
   enable:
     - gofmt

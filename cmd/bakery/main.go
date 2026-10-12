@@ -27,7 +27,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, 10*time.Second)
-	handler, closeDB, err := wire.Application(startup, c)
+	handler, closeDB, err := wire.NewServer(startup, c)
 	cancel()
 	if err != nil {
 		return err

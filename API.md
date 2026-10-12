@@ -105,7 +105,7 @@ go test ./...
 go vet ./...
 # Disposable fresh PostgreSQL DB ending in _test only:
 $env:TEST_DATABASE_URL='postgresql://.../bakery_api_review_test?sslmode=disable'
-go test ./internal/adapters/inbound/api -run TestCheckoutPostgres -v -count=1
+go test ./internal/adapters/inbound/rest/v1 -run TestCheckoutPostgres -v -count=1
 ```
 
 Integration tests load the schema snapshot, apply the API migration only if its tables are absent, and seed test-only store settings. They exercise authentication, checkout replay/conflict, concurrent stock reservation, slips, approval deduplication, LINE outbox insertion, cancellation and transaction rollback. They refuse non-test databases and fail if schema already exists, rather than dropping tables.

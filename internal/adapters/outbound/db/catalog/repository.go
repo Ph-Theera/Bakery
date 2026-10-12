@@ -1,8 +1,10 @@
 package catalog
 
 import (
+	"bakery/internal/adapters/outbound/db/transaction"
+	product "bakery/internal/domains/catalog"
+	portout "bakery/internal/ports/port_out/catalog"
 	"bakery/internal/shared"
-	"bakery/internal/usecases/product"
 	"context"
 	"errors"
 	"math"
@@ -49,8 +51,8 @@ func scan(row pgx.Row) (product.Data, error) {
 	p.Images = []product.Image{}
 	return p, dbError(err)
 }
-func (r Repository) images(ctx context.Context, p *product.Data) error {
-	rows, err := r.DB.Query(ctx, "SELECT object_key,COALESCE(alt_text,''),is_primary FROM app_schema.product_images WHERE product_id=$1 AND deleted_at IS NULL ORDER BY is_primary DESC,sort_order,id", p.ID)
+func (r Repository) images(ctx context.Context, tx shared.Transaction, p *product.Data) error {
+	rows, err := transaction.Executor(r.DB, tx).Query(ctx, "SELECT object_key,COALESCE(alt_text,''),is_primary FROM app_schema.product_images WHERE product_id=$1 AND deleted_at IS NULL ORDER BY is_primary DESC,sort_order,id", p.ID)
 	if err != nil {
 		return err
 	}
@@ -85,7 +87,7 @@ func (r Repository) List(ctx context.Context, q product.Query) ([]product.Data, 
 		return nil, err
 	}
 	for i := range out {
-		if err = r.images(ctx, &out[i]); err != nil {
+		if err = r.images(ctx, nil, &out[i]); err != nil {
 			return nil, err
 		}
 	}
@@ -94,7 +96,7 @@ func (r Repository) List(ctx context.Context, q product.Query) ([]product.Data, 
 func (r Repository) Get(ctx context.Context, id string, public bool) (product.Data, error) {
 	p, err := scan(r.DB.QueryRow(ctx, "SELECT "+cols+" FROM app_schema.products p WHERE (p.id::text=$1 OR p.slug=$1) AND p.deleted_at IS NULL AND (NOT $2 OR p.is_active)", id, public))
 	if err == nil {
-		err = r.images(ctx, &p)
+		err = r.images(ctx, nil, &p)
 	}
 	return p, err
 }
@@ -114,45 +116,31 @@ func (r Repository) Categories(ctx context.Context) ([]product.Category, error) 
 	}
 	return out, rows.Err()
 }
-func (r Repository) Save(ctx context.Context, id string, p product.Data) (product.Data, error) {
+func NewProductRepository(db *pgxpool.Pool, base string) portout.Repository {
+	return &Repository{DB: db, ImageBase: base}
+}
+func (r Repository) Save(ctx context.Context, tx shared.Transaction, id string, p product.Data) (product.Data, error) {
+	q := transaction.Executor(r.DB, tx)
 	var compare *int64
 	if p.ComparePrice != nil {
 		v := int64(math.Round(*p.ComparePrice * 100))
 		compare = &v
 	}
 	var result string
-	var err error
+	var e error
 	if id == "" {
-		err = r.DB.QueryRow(ctx, "INSERT INTO app_schema.products(category_id,name,slug,description_th,price_satang,compare_at_price_satang,stock_quantity,is_active,is_featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id::text", p.CategoryID, p.Name, p.Slug, p.Description, int64(math.Round(p.Price*100)), compare, p.Stock, p.Active, p.Featured).Scan(&result)
+		e = q.QueryRow(ctx, "INSERT INTO app_schema.products(category_id,name,slug,description_th,price_satang,compare_at_price_satang,stock_quantity,is_active,is_featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id::text", p.CategoryID, p.Name, p.Slug, p.Description, int64(math.Round(p.Price*100)), compare, p.Stock, p.Active, p.Featured).Scan(&result)
 	} else {
-		tx, e := r.DB.Begin(ctx)
-		if e != nil {
-			return product.Data{}, e
-		}
-		defer func() { _ = tx.Rollback(ctx) }()
-		var reserved int64
-		var locked string
-		if e = tx.QueryRow(ctx, "SELECT id::text FROM app_schema.products WHERE id=$1 AND deleted_at IS NULL FOR UPDATE", id).Scan(&locked); e != nil {
-			return product.Data{}, dbError(e)
-		}
-		if e = tx.QueryRow(ctx, "SELECT COALESCE(sum(quantity),0) FROM app_schema.inventory_reservations WHERE product_id=$1 AND status='reserved' AND expires_at>now()", id).Scan(&reserved); e != nil {
-			return product.Data{}, e
-		}
-		if int64(p.Stock) < reserved {
-			return product.Data{}, shared.ErrConflict
-		}
-		err = tx.QueryRow(ctx, "UPDATE app_schema.products SET category_id=$2,name=$3,slug=$4,description_th=$5,price_satang=$6,compare_at_price_satang=$7,stock_quantity=$8,is_active=$9,is_featured=$10 WHERE id=$1 AND deleted_at IS NULL RETURNING id::text", id, p.CategoryID, p.Name, p.Slug, p.Description, int64(math.Round(p.Price*100)), compare, p.Stock, p.Active, p.Featured).Scan(&result)
-		if err != nil {
-			return product.Data{}, dbError(err)
-		}
-		if err = tx.Commit(ctx); err != nil {
-			return product.Data{}, err
-		}
+		e = q.QueryRow(ctx, "UPDATE app_schema.products SET category_id=$2,name=$3,slug=$4,description_th=$5,price_satang=$6,compare_at_price_satang=$7,stock_quantity=$8,is_active=$9,is_featured=$10 WHERE id=$1 AND deleted_at IS NULL RETURNING id::text", id, p.CategoryID, p.Name, p.Slug, p.Description, int64(math.Round(p.Price*100)), compare, p.Stock, p.Active, p.Featured).Scan(&result)
 	}
-	if err != nil {
-		return product.Data{}, dbError(err)
+	if e != nil {
+		return product.Data{}, dbError(e)
 	}
-	return r.Get(ctx, result, false)
+	out, e := scan(q.QueryRow(ctx, "SELECT "+cols+" FROM app_schema.products p WHERE p.id=$1", result))
+	if e == nil {
+		e = r.images(ctx, tx, &out)
+	}
+	return out, e
 }
 func (r Repository) Delete(ctx context.Context, id, actor string) error {
 	tag, err := r.DB.Exec(ctx, "UPDATE app_schema.products SET deleted_at=now(),deleted_by=$2,is_active=false WHERE id=$1 AND deleted_at IS NULL", id, actor)

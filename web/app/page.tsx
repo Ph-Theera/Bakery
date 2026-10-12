@@ -1,0 +1,4 @@
+import Storefront from '../components/storefront';
+import { api } from '../lib/api';
+import type { Category, Product, StoreSettings } from '../lib/types';
+export default async function Home() { let products: Product[] = []; let categories: Category[] = []; let store: StoreSettings | null = null; let error = ''; try { [products, categories, store] = await Promise.all([api.products(), api.categories(), api.store()]); } catch (e) { error = e instanceof Error ? e.message : 'เชื่อมต่อ API ไม่สำเร็จ'; } if (error) return <main className="page container" style={{paddingTop:80}}><div className="eyebrow">TONGBAI</div><h1>ยังเชื่อมต่อ Backend ไม่ได้</h1><div className="error">{error}<br/><span className="muted">ตรวจสอบ NEXT_PUBLIC_API_BASE_URL และเปิด backend API ก่อนใช้งาน</span></div></main>; return <Storefront initialProducts={products} initialCategories={categories} initialStore={store}/>; }

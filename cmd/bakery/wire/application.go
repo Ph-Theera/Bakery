@@ -35,6 +35,8 @@ type Application struct {
 	updateProductUc         catalogin.UpdateProductUsecase
 	deleteProductUc         catalogin.DeleteProductUsecase
 	listCategoriesUc        catalogin.ListCategoriesUsecase
+	uploadProductImageUc    catalogin.UploadProductImageUsecase
+	getProductImageUc       catalogin.GetProductImageUsecase
 	quoteCheckoutUc         ordersin.QuoteCheckoutUsecase
 	createOrderUc           ordersin.CreateOrderUsecase
 	getOrderUc              ordersin.GetOrderUsecase
@@ -59,6 +61,7 @@ type Application struct {
 
 func NewApplication(deps dep.Dependencies, c config.Config) *Application {
 	products := catalog.NewProductRepository(deps.Db, c.ImageBase)
+	images := catalog.NewProductImageRepository(deps.Db, c.ImageBase)
 	orders := ordersdb.NewOrderRepository(deps.Db)
 	payments := paymentsdb.NewPaymentRepository(deps.Db)
 	inventory := inventorydb.NewInventoryRepository(deps.Db)
@@ -77,6 +80,8 @@ func NewApplication(deps dep.Dependencies, c config.Config) *Application {
 		updateProductUc:         productuc.NewUpdateProductUsecase(productuc.UpdateProductArgs{ExecWithTx: exec, CatalogRepository: products, InventoryRepository: inventory}),
 		deleteProductUc:         productuc.NewDeleteProductUsecase(productuc.DeleteProductArgs{CatalogRepository: products}),
 		listCategoriesUc:        productuc.NewListCategoriesUsecase(productuc.ListCategoriesArgs{CatalogRepository: products}),
+		uploadProductImageUc:    productuc.NewUploadProductImageUsecase(productuc.UploadProductImageArgs{Images: images}),
+		getProductImageUc:       productuc.NewGetProductImageUsecase(productuc.GetProductImageArgs{Images: images}),
 		quoteCheckoutUc:         compositeuc.NewQuoteCheckoutUsecase(compositeuc.QuoteCheckoutArgs{Pricing: pricing}),
 		createOrderUc:           compositeuc.NewCreateOrderUsecase(compositeuc.CreateOrderArgs{ExecWithTx: exec, OrderRepository: orders, UserRepository: users, PaymentRepository: payments, InventoryRepository: inventory, Pricing: pricing}),
 		getOrderUc:              ordersuc.NewGetOrderUsecase(ordersuc.GetOrderArgs{OrderRepository: orders}),

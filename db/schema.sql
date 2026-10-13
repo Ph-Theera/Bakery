@@ -310,6 +310,7 @@ CREATE TABLE app_schema.product_images (
     updated_by uuid,
     deleted_at timestamp with time zone,
     deleted_by uuid,
+    content bytea,
     CONSTRAINT product_images_check CHECK (((deleted_at IS NULL) = (deleted_by IS NULL)))
 );
 
@@ -1165,4 +1166,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261010024134'),
     ('20261010024942'),
     ('20261010030000'),
-    ('20261010120000');
+    ('20261010120000'),
+    ('20261013040000');

@@ -20,6 +20,8 @@ Base path: `/api/v1`. UUID identifiers match `app_schema`. Database money uses i
 | GET | `/admin/dashboard` | admin | Sales/order/pending-payment totals |
 | GET | `/admin/products` | admin | Catalog including inactive products |
 | POST | `/admin/products` | admin | Create product |
+| POST | `/admin/products/{id}/images` | admin | Upload JPEG/PNG/WebP product image (multipart `image`, max 5 MB) |
+| GET | `/products/images/{id}` | public | Read an uploaded product image |
 | PATCH | `/admin/products/{id}` | admin | Partial product update |
 | DELETE | `/admin/products/{id}` | admin | Soft delete with admin actor |
 | GET | `/admin/orders` | admin | Paginated orders, optional `status` |
@@ -74,7 +76,7 @@ For admin calls set `ADMIN_API_TOKEN` and `ADMIN_USER_ID` (an existing active UU
 }
 ```
 
-PATCH accepts these fields individually, including explicit `false`, zero, and nullable comparison price. A stock update below active reservations returns 409. Nonempty `images` in product writes are currently rejected: catalog reads existing `product_images` metadata and builds URLs using `PRODUCT_IMAGE_BASE_URL`. Binary product-image storage/upload needs a storage-provider implementation. The current schema has no `sku` column; do not send `sku`.
+PATCH accepts these fields individually, including explicit `false`, zero, and nullable comparison price. A stock update below active reservations returns 409. Nonempty `images` in product JSON writes are rejected: create/update the product, then POST a multipart `image` (optional `alt_text`) to `/admin/products/{id}/images`. Uploaded files are stored in PostgreSQL; the newest is primary and older images remain. Catalog responses expose `/api/v1/products/images/{id}` for uploaded files, while existing object-key images still use `PRODUCT_IMAGE_BASE_URL`. The current schema has no `sku` column; do not send `sku`.
 
 ## Payment and LINE behavior
 

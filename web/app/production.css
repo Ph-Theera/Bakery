@@ -1,0 +1,21 @@
+label { display: block; margin: 12px 0 5px; color: var(--muted); font-size: 12px; }
+input, textarea, select { width: 100%; padding: 11px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: inherit; margin-bottom: 12px; }
+.checkout-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+.payment-choice { display: flex; gap: 8px; margin: 18px 0; }
+.payment-choice button { padding: 12px; border: 1px solid var(--line); background: var(--cream); color: var(--ink); cursor: pointer; }
+.payment-choice button.selected { background: var(--sage); border-color: var(--coffee); }
+.summary-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.summary-total { padding-top: 18px; color: var(--espresso); font: 500 20px 'Playfair Display', Georgia, serif; text-align: right; }
+.qr-placeholder { width: 180px; height: 180px; display: grid; place-items: center; margin: 18px 0; border: 10px solid white; background: repeating-linear-gradient(45deg, var(--espresso) 0 4px, white 4px 8px); color: white; text-align: center; text-shadow: 0 1px 3px #000; }
+.product-detail-page { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; margin-top: 50px; }
+.product-detail-page img { width: 100%; height: 460px; object-fit: cover; border-radius: 8px; filter: saturate(.8); }
+.admin-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
+.admin-tabs button { border: 1px solid var(--line); background: var(--paper); color: var(--ink); padding: 10px 14px; cursor: pointer; }
+.admin-tabs button.selected { background: var(--espresso); color: var(--cream); }
+.admin-panel { margin-top: 16px; overflow: auto; }
+.admin-form { max-width: 650px; }
+.checkbox { display: flex; align-items: center; gap: 8px; }
+.checkbox input { width: auto; margin: 0; }
+.text-button { background: none; border: 0; color: var(--caramel); cursor: pointer; }
+.table select { padding: 7px; border: 1px solid var(--line); background: var(--paper); }
+@media (max-width: 850px) { .checkout-layout, .product-detail-page { grid-template-columns: 1fr; } }

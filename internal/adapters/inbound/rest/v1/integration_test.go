@@ -105,6 +105,34 @@ func TestCheckoutPostgres(t *testing.T) {
 	body := `{"customer":{"name":"Test Buyer","phone":"0812345678"},"fulfillment":{"type":"delivery","address":"Bangkok"},"items":[{"productId":"` + prod + `","quantity":2}],"paymentMethod":"bank_transfer"}`
 	call("GET", "/products", "", "", "", 200)
 	call("GET", "/categories", "", "", "", 200)
+	var imageBody bytes.Buffer
+	imageForm := multipart.NewWriter(&imageBody)
+	imageFile, e := imageForm.CreateFormFile("image", "bread.png")
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, _ = imageFile.Write([]byte("\x89PNG\r\n\x1a\n"))
+	_ = imageForm.Close()
+	imageRequest := httptest.NewRequest("POST", "/admin/products/"+prod+"/images", &imageBody)
+	imageRequest.Header.Set("Authorization", "Bearer review-admin")
+	imageRequest.Header.Set("Content-Type", imageForm.FormDataContentType())
+	imageResponse := httptest.NewRecorder()
+	h.ServeHTTP(imageResponse, imageRequest)
+	if imageResponse.Code != 201 {
+		t.Fatalf("upload image: %d %s", imageResponse.Code, imageResponse.Body.String())
+	}
+	var uploaded struct {
+		Images []struct {
+			PublicURL string `json:"public_url"`
+		} `json:"images"`
+	}
+	if e = json.Unmarshal(imageResponse.Body.Bytes(), &uploaded); e != nil || len(uploaded.Images) != 1 {
+		t.Fatalf("uploaded image metadata: %v %s", e, imageResponse.Body.String())
+	}
+	imageRead := call("GET", strings.TrimPrefix(uploaded.Images[0].PublicURL, "/api/v1"), "", "", "", 200)
+	if imageRead.Header().Get("Content-Type") != "image/png" || !bytes.Equal(imageRead.Body.Bytes(), []byte("\x89PNG\r\n\x1a\n")) {
+		t.Fatal("uploaded image content mismatch")
+	}
 	call("POST", "/checkout/quote", body, "", "", 200)
 	var order orders.Data
 	w := call("POST", "/orders", body, "", "review-order-0001", 201)

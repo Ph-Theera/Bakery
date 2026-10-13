@@ -3,6 +3,7 @@ import { mockCategories, mockCreateOrder, mockCreateProduct, mockCustomers, mock
 import { getAdminToken, orderCredentials, rememberOrder, rememberUser, userToken } from './auth';
 
 const base = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
+export const imageUrl = (url: string) => url.startsWith('/api/v1/products/images/') ? `${new URL(base).origin}${url}` : url;
 const mockEnabled = process.env.NEXT_PUBLIC_API_MOCK === 'true';
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
@@ -57,6 +58,15 @@ export const api = {
   adminDashboard: () => fallback(() => request<Record<string, unknown>>('/admin/dashboard', undefined, admin), () => ({ total_sales_thb: mockOrders.reduce((sum, o) => sum + o.total_thb, 0), total_orders: mockOrders.length, pending_payments: mockOrders.filter(o => o.payment_status !== 'approved').length })),
   adminProducts: () => fallback(() => request<Product[]>('/admin/products?limit=100', undefined, admin), () => mockProducts),
   createProduct: (payload: any) => fallback(() => request<Product>('/admin/products', json('POST', payload), admin), () => mockCreateProduct(payload)),
+  uploadProductImage: (id: string, file: File, altText: string) => {
+    const body = new FormData(); body.set('image', file); body.set('alt_text', altText);
+    return fallback(() => request<Product>(`/admin/products/${id}/images`, { method: 'POST', body }, admin), () => {
+      const product = mockProducts.find(p => p.id === id);
+      if (!product) throw new ApiError('ไม่พบสินค้า', 404);
+      product.images.unshift({ public_url: URL.createObjectURL(file), alt_text: altText, is_primary: true });
+      return product;
+    });
+  },
   updateProduct: (id: string, payload: unknown) => fallback(() => request<Product>(`/admin/products/${id}`, json('PATCH', payload), admin), () => mockUpdateProduct(id, payload)),
   deleteProduct: (id: string) => fallback(() => request(`/admin/products/${id}`, json('DELETE'), admin), () => { mockDeleteProduct(id); return undefined; }),
   adminOrders: (query = '') => fallback(() => request<Order[]>(`/admin/orders?limit=100${query ? `&${query}` : ''}`, undefined, admin), () => mockOrders),

@@ -6,7 +6,7 @@ cmd = "go build -trimpath -buildvcs=false -o ./tmp/bakery ./cmd/bakery"
 entrypoint = ["./tmp/bakery"]
 include_ext = ["go"]
 include_file = ["go.mod", "go.sum"]
-exclude_dir = ["tmp", "build", "bin", "coverage", ".git", ".agents", ".codex", ".aws"]
+exclude_dir = ["tmp", "build", "bin", "coverage", ".git", ".agents", ".codex", ".aws", "web"]
 exclude_regex = ["_test\\.go"]
 delay = 500
 stop_on_error = true

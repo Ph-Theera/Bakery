@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { api, imageUrl } from '../lib/api';
 import { setAdminToken } from '../lib/auth';
 import type { Category, Order, Product, StoreSettings } from '../lib/types';
 
@@ -15,7 +15,10 @@ export default function AdminDashboard() {
   const [settings, setSettings] = useState<StoreSettings | null>(null); const [dashboard, setDashboard] = useState<Record<string, unknown>>({});
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null); const [preview, setPreview] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState('');
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
   const load = async () => {
     const [d, o, p, c, s, cats] = await Promise.all([api.adminDashboard(), api.adminOrders(), api.adminProducts(), api.customers(), api.settings(), api.categories()]);
     setDashboard(d); setOrders(o); setProducts(p); setCustomers(c); setSettings(s); setCategories(cats);
@@ -33,8 +36,13 @@ export default function AdminDashboard() {
     event.preventDefault(); if (!draft) return;
     void run(async () => {
       const { id, ...payload } = draft;
-      if (id) await api.updateProduct(id, payload); else await api.createProduct(payload);
-      setDraft(null); await load();
+      const saved = id ? await api.updateProduct(id, payload) : await api.createProduct(payload);
+      setDraft({ ...draft, id: saved.id });
+      if (imageFile) {
+        try { await api.uploadProductImage(saved.id, imageFile, draft.name); }
+        catch (cause) { throw new Error(`บันทึกสินค้าแล้ว แต่รูปยังอัปโหลดไม่สำเร็จ (${cause instanceof Error ? cause.message : 'ไม่ทราบสาเหตุ'}) กรุณากดบันทึกอีกครั้ง`); }
+      }
+      setImageFile(null); setImagePreview(''); setDraft(null); await load();
     });
   };
   const saveSettings = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); if (settings) void run(async () => { await api.updateSettings(settings); await load(); }); };
@@ -67,7 +75,7 @@ export default function AdminDashboard() {
     </div><OrderTable orders={orders.slice(0, 8)} onStatus={updateStatus} busy={busy}/></>}
     {tab === 'orders' && <OrderTable orders={orders} onStatus={updateStatus} busy={busy}/>}
     {tab === 'products' && <section className="panel">
-      <div className="section-head"><h2>สินค้า</h2><button className="button primary" disabled={busy} onClick={() => setDraft({ ...empty, category_id: categories[0]?.id || '' })}>เพิ่มสินค้า</button></div>
+      <div className="section-head"><h2>สินค้า</h2><button className="button primary" disabled={busy} onClick={() => { setImageFile(null); setImagePreview(''); setDraft({ ...empty, category_id: categories[0]?.id || '' }); }}>เพิ่มสินค้า</button></div>
       {draft && <form className="admin-form" onSubmit={saveProduct}>
         <h3>{draft.id ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า'}</h3>
         <label>หมวดหมู่</label><select required value={draft.category_id} onChange={e => setDraft({ ...draft, category_id: e.target.value })}><option value="">เลือกหมวดหมู่</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name_th}</option>)}</select>
@@ -78,10 +86,11 @@ export default function AdminDashboard() {
         <label>สต็อก</label><input type="number" min="0" step="1" required value={draft.stock_quantity} onChange={e => setDraft({ ...draft, stock_quantity: Number(e.target.value) })}/>
         <label className="checkbox"><input type="checkbox" checked={draft.is_active} onChange={e => setDraft({ ...draft, is_active: e.target.checked })}/>เปิดขาย</label>
         <label className="checkbox"><input type="checkbox" checked={draft.is_featured} onChange={e => setDraft({ ...draft, is_featured: e.target.checked })}/>สินค้าแนะนำ</label>
-        <p className="muted">API ยังไม่รองรับอัปโหลดรูปสินค้า รูปที่มีอยู่ยังคงเดิม</p>
-        <button className="button primary" disabled={busy || !draft.category_id}>บันทึก</button><button type="button" className="button secondary" onClick={() => setDraft(null)}>ยกเลิก</button>
+        <label>รูปสินค้า (JPEG, PNG หรือ WebP ไม่เกิน 5 MB)</label><input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file = e.target.files?.[0] || null; if (file && file.size > 5 * 1024 * 1024) { setError('รูปต้องมีขนาดไม่เกิน 5 MB'); setImageFile(null); setImagePreview(''); e.target.value = ''; return; } setError(''); setImageFile(file); setImagePreview(file ? URL.createObjectURL(file) : ''); }}/>
+        {(imagePreview || (draft.id && products.find(p => p.id === draft.id)?.images?.[0])) && <img src={imagePreview || imageUrl(products.find(p => p.id === draft.id)?.images?.[0]?.public_url || '')} alt="ตัวอย่างรูปสินค้า" style={{ width: 180, maxHeight: 180, objectFit: 'cover' }} />}
+        <button className="button primary" disabled={busy || !draft.category_id}>บันทึก</button><button type="button" className="button secondary" onClick={() => { setImageFile(null); setImagePreview(''); setDraft(null); }}>ยกเลิก</button>
       </form>}
-      <table className="table"><thead><tr><th>สินค้า</th><th>ราคา</th><th>สต็อก</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>{products.map(p => <tr key={p.id}><td>{p.name}</td><td>฿{p.price_thb}</td><td>{p.stock_quantity}</td><td>{p.is_active ? 'เปิดขาย' : 'ปิดขาย'}</td><td><button disabled={busy} onClick={() => setDraft({ id: p.id, category_id: p.category_id || '', name: p.name, slug: p.slug, description_th: p.description_th, price_thb: p.price_thb, stock_quantity: p.stock_quantity, is_active: p.is_active, is_featured: p.is_featured })}>แก้ไข</button><button disabled={busy} onClick={() => removeProduct(p)}>ลบ</button></td></tr>)}</tbody></table>
+      <table className="table"><thead><tr><th>สินค้า</th><th>ราคา</th><th>สต็อก</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>{products.map(p => <tr key={p.id}><td>{p.name}</td><td>฿{p.price_thb}</td><td>{p.stock_quantity}</td><td>{p.is_active ? 'เปิดขาย' : 'ปิดขาย'}</td><td><button disabled={busy} onClick={() => { setImageFile(null); setImagePreview(''); setDraft({ id: p.id, category_id: p.category_id || '', name: p.name, slug: p.slug, description_th: p.description_th, price_thb: p.price_thb, stock_quantity: p.stock_quantity, is_active: p.is_active, is_featured: p.is_featured }); }}>แก้ไข</button><button disabled={busy} onClick={() => removeProduct(p)}>ลบ</button></td></tr>)}</tbody></table>
     </section>}
     {tab === 'payments' && <section className="panel"><h2>สลิปรอตรวจสอบ</h2><p>อนุมัติหลังตรวจสอบยอดเงินจริงเท่านั้น การอัปโหลดสลิปไม่ได้ยืนยันเงินเข้า</p>
       {orders.filter(o => o.payment_status === 'submitted').map(o => <div className="panel" key={o.id}><h3>{o.order_number}</h3><p>{o.customer_name_snapshot} · ฿{o.total_thb.toLocaleString('th-TH')}</p>

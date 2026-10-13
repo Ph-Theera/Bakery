@@ -19,7 +19,7 @@ Backend ต้องรันที่ port 8080, apply migration API แล้�
 
 Checkout ส่ง Idempotency-Key เดิมเมื่อ retry payload เดิม; order token เก็บใน sessionStorage ของแท็บเพื่อส่งสลิปและติดตามสถานะ. ไม่มี server session. ปิดแท็บ/ล้าง storage จะเสีย guest access; LINE OAuth/LIFF login UI ยังไม่ได้ตั้งค่า แม้ client รองรับ `api.linkLine(accessToken)` แล้ว.
 
-สร้างออเดอร์ก่อน จากนั้นอัปโหลดสลิปได้ทั้งโอนธนาคารและ PromptPay. ร้านอนุมัติ/ปฏิเสธผ่านหน้า admin; backend เป็นผู้ตัด stock และ enqueue LINE. ไม่มี QR หรือเลขบัญชีตัวอย่างแสดงเป็นข้อมูลจริง ต้องเพิ่ม payment instructions จากร้านก่อนเปิดรับเงินจริง. API ยังไม่รองรับอัปโหลดรูปสินค้า.
+สร้างออเดอร์ก่อน จากนั้นอัปโหลดสลิปได้ทั้งโอนธนาคารและ PromptPay. ร้านอนุมัติ/ปฏิเสธผ่านหน้า admin; backend เป็นผู้ตัด stock และ enqueue LINE. ไม่มี QR หรือเลขบัญชีตัวอย่างแสดงเป็นข้อมูลจริง ต้องเพิ่ม payment instructions จากร้านก่อนเปิดรับเงินจริง. หน้า admin อัปโหลดรูปสินค้า JPEG, PNG หรือ WebP ได้หลังบันทึกสินค้า (ไม่เกิน 5 MB ต่อรูป); รูปเก็บใน PostgreSQL และแสดงบนหน้าร้าน.
 
 ตรวจด้วย `npm.cmd test`, `npm.cmd run typecheck`, `npm.cmd run build` (Windows PowerShell). Dev ใช้ .next-dev และ production build/start ใช้ .next-build เพื่อไม่ให้ cache ชนกัน.
 

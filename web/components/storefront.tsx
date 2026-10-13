@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { api } from '../lib/api';
+import { api, imageUrl } from '../lib/api';
 import type { Category, CartItem, Product, StoreSettings } from '../lib/types';
 
 type Props = {
@@ -17,7 +17,7 @@ const fallbackImages = [
   'https://images.unsplash.com/photo-1464195244916-405fa0dc7b3d?auto=format&fit=crop&w=1000&q=85',
 ];
 
-const imageFor = (product: Product | undefined, fallback: string) => product?.images?.[0]?.public_url || fallback;
+const imageFor = (product: Product | undefined, fallback: string) => imageUrl(product?.images?.[0]?.public_url || fallback);
 const money = (amount: number) => new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB', maximumFractionDigits: 0 }).format(amount);
 
 export default function Storefront({ initialProducts, initialCategories, initialStore }: Props) {

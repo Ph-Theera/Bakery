@@ -60,6 +60,18 @@ test('admin endpoints require explicit token and reject forbidden access', async
   };
   await assert.rejects(api.adminProducts(), e => e.status === 403);
 });
+test('product image upload uses admin token and multipart form', async () => {
+  auth.setAdminToken('private-admin-token');
+  global.fetch = async (url, init) => {
+    assert.equal(url, 'http://localhost:8080/api/v1/admin/products/product-1/images');
+    assert.equal(init.headers.get('Authorization'), 'Bearer private-admin-token');
+    assert.equal(init.headers.has('Content-Type'), false);
+    assert.equal(init.body.get('image').name, 'bread.png');
+    assert.equal(init.body.get('alt_text'), 'Bread');
+    return Response.json({ id: 'product-1', images: [] });
+  };
+  await api.uploadProductImage('product-1', new File(['png'], 'bread.png', { type: 'image/png' }), 'Bread');
+});
 test('wrong slip MIME is rejected before any request', () => {
   assert.throws(() => api.uploadPaymentSlip('p', new File(['text'], 'bad.txt', { type: 'text/plain' }), 'o'), /5MB/);
 });

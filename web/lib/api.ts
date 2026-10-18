@@ -2,8 +2,11 @@ import type { Category, Order, Product, StoreSettings } from './types';
 import { mockCategories, mockCreateOrder, mockCreateProduct, mockCustomers, mockDeleteProduct, mockOrders, mockProducts, mockQuote, mockStore, mockUpdateProduct } from './mock';
 import { getAdminToken, orderCredentials, rememberOrder, rememberUser, userToken } from './auth';
 
-const base = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1').replace(/\/$/, '');
-export const imageUrl = (url: string) => url.startsWith('/api/v1/products/images/') ? `${new URL(base).origin}${url}` : url;
+const publicBase = (process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1').replace(/\/$/, '');
+const base = typeof window === 'undefined' && publicBase.startsWith('/')
+  ? (process.env.API_INTERNAL_BASE_URL || 'http://127.0.0.1:8080/api/v1').replace(/\/$/, '')
+  : publicBase;
+export const imageUrl = (url: string) => url;
 const mockEnabled = process.env.NEXT_PUBLIC_API_MOCK === 'true';
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }

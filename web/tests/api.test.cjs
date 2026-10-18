@@ -75,3 +75,24 @@ test('product image upload uses admin token and multipart form', async () => {
 test('wrong slip MIME is rejected before any request', () => {
   assert.throws(() => api.uploadPaymentSlip('p', new File(['text'], 'bad.txt', { type: 'text/plain' }), 'o'), /5MB/);
 });
+test('browser uses same-origin API while server uses internal backend URL', async () => {
+  const modulePath = require.resolve('../lib/api.ts');
+  process.env.NEXT_PUBLIC_API_BASE_URL = '/api/v1';
+  process.env.API_INTERNAL_BASE_URL = 'http://127.0.0.1:8080/api/v1';
+  try {
+    delete require.cache[modulePath];
+    const browserApi = require(modulePath);
+    global.fetch = async url => { assert.equal(url, '/api/v1/products?limit=100'); return Response.json([]); };
+    await browserApi.api.products();
+    assert.equal(browserApi.imageUrl('/api/v1/products/images/id'), '/api/v1/products/images/id');
+    delete global.window;
+    delete require.cache[modulePath];
+    const serverApi = require(modulePath);
+    global.fetch = async url => { assert.equal(url, 'http://127.0.0.1:8080/api/v1/products?limit=100'); return Response.json([]); };
+    await serverApi.api.products();
+  } finally {
+    process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:8080/api/v1';
+    delete process.env.API_INTERNAL_BASE_URL;
+    delete require.cache[modulePath];
+  }
+});

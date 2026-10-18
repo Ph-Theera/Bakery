@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-ตั้งค่า `NEXT_PUBLIC_API_BASE_URL` ให้ชี้ไปที่ backend เช่น `http://localhost:8080/api/v1`. ค่าเริ่มต้น `NEXT_PUBLIC_API_MOCK=false` ไม่ซ่อน API error; ตั้ง true เฉพาะ demo (ไม่ส่งคำขอจริง).
+ตั้ง `NEXT_PUBLIC_API_BASE_URL=/api/v1` เพื่อให้ browser (รวมถึงโทรศัพท์) เรียก API ผ่าน origin เดียวกับเว็บ; Next.js จะส่งต่อไปยัง `API_INTERNAL_BASE_URL` ซึ่งค่าเริ่มต้นคือ `http://127.0.0.1:8080/api/v1` บนเครื่องเดียวกัน หาก Next.js รันคนละเครื่อง/container ให้ตั้ง URL ภายในที่ Next.js เข้าถึง backend ได้. ค่าเริ่มต้น `NEXT_PUBLIC_API_MOCK=false` ไม่ซ่อน API error; ตั้ง true เฉพาะ demo (ไม่ส่งคำขอจริง).
 
 Backend ต้องรันที่ port 8080, apply migration API แล้ว และตั้ง `AUTH_SECRET` อย่างน้อย 32 ตัวอักษร. ตั้ง `FRONTEND_ORIGIN=http://localhost:3000` ให้ตรง origin เว็บจริงเพื่อให้ CORS อนุญาต Authorization และ Idempotency-Key. ไม่มีการ apply migration ฐานจริงจาก frontend.
 
